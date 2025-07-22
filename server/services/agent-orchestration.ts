@@ -46,10 +46,11 @@ export class AgentOrchestrationService {
       "medical_analysis": "healthcare",
       "health_consultation": "healthcare",
       "stock_analysis": "financial",
-      "investment_advice": "financial",
+      "investment_advice": "financial", 
       "workflow_automation": "business_automation",
       "project_management": "business_automation",
       "sports_betting": "sports_analytics",
+      "sports_analysis": "sports_analytics",
       "game_analysis": "sports_analytics",
     };
 

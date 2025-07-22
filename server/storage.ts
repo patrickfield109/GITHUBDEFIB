@@ -106,6 +106,9 @@ export class MemStorage implements IStorage {
     const session: ConversationSession = {
       ...insertSession,
       id,
+      status: insertSession.status || "active",
+      userId: insertSession.userId || null,
+      context: insertSession.context || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -139,6 +142,10 @@ export class MemStorage implements IStorage {
     const pool: AgentPool = {
       ...insertPool,
       id,
+      status: insertPool.status || "online",
+      capacity: insertPool.capacity || 5,
+      activeAgents: insertPool.activeAgents || 0,
+      configuration: insertPool.configuration || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -168,6 +175,12 @@ export class MemStorage implements IStorage {
     const task: Task = {
       ...insertTask,
       id,
+      status: insertTask.status || "queued",
+      progress: insertTask.progress || 0,
+      input: insertTask.input || null,
+      output: insertTask.output || null,
+      metadata: insertTask.metadata || null,
+      agentPoolId: insertTask.agentPoolId || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -197,6 +210,7 @@ export class MemStorage implements IStorage {
     const metric: SystemMetric = {
       ...insertMetric,
       id,
+      metadata: insertMetric.metadata || null,
       timestamp: new Date(),
     };
     this.systemMetrics.push(metric);
@@ -212,6 +226,7 @@ export class MemStorage implements IStorage {
     const log: ActivityLog = {
       ...insertLog,
       id,
+      metadata: insertLog.metadata || null,
       timestamp: new Date(),
     };
     this.activityLogs.push(log);

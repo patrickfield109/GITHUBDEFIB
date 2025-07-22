@@ -29,15 +29,13 @@ export function Sidebar() {
         const isActive = location === item.href;
         
         return (
-          <Link key={item.href} href={item.href}>
-            <a className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-              isActive 
-                ? "bg-primary/10 text-primary border-r-2 border-primary" 
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}>
-              <Icon size={18} />
-              <span className="font-medium">{item.label}</span>
-            </a>
+          <Link key={item.href} href={item.href} className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+            isActive 
+              ? "bg-primary/10 text-primary border-r-2 border-primary" 
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}>
+            <Icon size={18} />
+            <span className="font-medium">{item.label}</span>
           </Link>
         );
       })}

@@ -1,42 +1,59 @@
 import { agentOrchestration } from "./agent-orchestration";
+import { openAIService } from "./openai-service";
 import { storage } from "../storage";
 
 export class CommandProcessor {
   async processCommand(command: string, sessionId: string): Promise<string> {
     const normalizedCommand = command.toLowerCase().trim();
 
-    // System status commands
-    if (this.isStatusCommand(normalizedCommand)) {
-      return await this.handleStatusCommand();
-    }
+    try {
+      // System status commands
+      if (this.isStatusCommand(normalizedCommand)) {
+        return await this.handleStatusCommand();
+      }
 
-    // Agent pool commands
-    if (this.isAgentPoolCommand(normalizedCommand)) {
-      return await this.handleAgentPoolCommand(normalizedCommand);
-    }
+      // Agent pool commands
+      if (this.isAgentPoolCommand(normalizedCommand)) {
+        return await this.handleAgentPoolCommand(normalizedCommand);
+      }
 
-    // Task submission commands
-    if (this.isTaskCommand(normalizedCommand)) {
-      return await this.handleTaskCommand(normalizedCommand);
-    }
+      // Task submission commands
+      if (this.isTaskCommand(normalizedCommand)) {
+        return await this.handleTaskCommand(normalizedCommand, sessionId);
+      }
 
-    // Health monitoring commands
-    if (this.isHealthCommand(normalizedCommand)) {
-      return await this.handleHealthCommand();
-    }
+      // Health monitoring commands
+      if (this.isHealthCommand(normalizedCommand)) {
+        return await this.handleHealthCommand();
+      }
 
-    // Demo commands
-    if (this.isDemoCommand(normalizedCommand)) {
-      return await this.handleDemoCommand(normalizedCommand);
-    }
+      // Demo commands
+      if (this.isDemoCommand(normalizedCommand)) {
+        return await this.handleDemoCommand(normalizedCommand);
+      }
 
-    // General help
-    if (this.isHelpCommand(normalizedCommand)) {
-      return this.getHelpMessage();
-    }
+      // General help
+      if (this.isHelpCommand(normalizedCommand)) {
+        return this.getHelpMessage();
+      }
 
-    // Default response for unrecognized commands
-    return this.getUnrecognizedCommandResponse(command);
+      // Enhanced AI-powered command processing for natural language
+      const systemStatus = await agentOrchestration.getSystemStatus();
+      const enhancedResponse = await openAIService.processConversationalCommand(command, {
+        sessionId,
+        systemStatus: {
+          agentPools: systemStatus.agentPools.length,
+          activeTasks: systemStatus.tasks.active,
+          queuedTasks: systemStatus.tasks.queued,
+          healthScore: systemStatus.metrics.system_health
+        }
+      });
+
+      return enhancedResponse || this.getUnrecognizedCommandResponse(command);
+    } catch (error) {
+      console.error("Command processing error:", error);
+      return "❌ I encountered an error processing your command. Please try again or contact support if the issue persists.";
+    }
   }
 
   private isStatusCommand(command: string): boolean {
@@ -135,7 +152,7 @@ export class CommandProcessor {
     return response;
   }
 
-  private async handleTaskCommand(command: string): Promise<string> {
+  private async handleTaskCommand(command: string, sessionId: string): Promise<string> {
     try {
       let taskType = "";
       let input = { query: command };
