@@ -1,0 +1,110 @@
+# OperatorOS - Enterprise AI Agent Orchestration Platform
+
+## Overview
+
+OperatorOS is a full-stack enterprise AI agent orchestration platform built with TypeScript, React, Express.js, and PostgreSQL. The system provides a sophisticated multi-agent architecture designed to manage and coordinate specialized AI agents across different domains (healthcare, financial, business automation, and sports analytics). The platform features real-time monitoring, task queue management, and a conversational interface designed to work seamlessly with Replit Agent.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+The application follows a modern full-stack architecture with clear separation of concerns:
+
+**Frontend**: React 18 with TypeScript, built using Vite for fast development and optimized production builds
+**Backend**: Express.js REST API server with TypeScript
+**Database**: PostgreSQL with Drizzle ORM for type-safe database operations
+**UI Framework**: Tailwind CSS with shadcn/ui components for consistent design
+**State Management**: TanStack Query for server state management and caching
+**Styling**: CSS Variables-based theming system supporting light/dark modes
+
+## Key Components
+
+### Frontend Architecture
+- **Component-based React application** using functional components and hooks
+- **shadcn/ui component library** providing enterprise-grade UI components
+- **TanStack Query** for efficient data fetching, caching, and synchronization
+- **Wouter** for lightweight client-side routing
+- **Responsive design** with Tailwind CSS and mobile-first approach
+
+### Backend Architecture
+- **Express.js REST API** with TypeScript for type safety
+- **Modular service architecture** with separate concerns:
+  - Agent orchestration service for task routing and management
+  - Command processor for conversational interface commands
+  - Health monitoring service for system metrics
+  - OpenAI service integration for AI capabilities
+- **In-memory storage implementation** with interface for future database integration
+- **Real-time health monitoring** with automatic metric collection
+
+### Database Design
+- **PostgreSQL schema** with Drizzle ORM migrations
+- **Core entities**: Users, Conversation Sessions, Agent Pools, Tasks, System Metrics, Activity Logs
+- **Relationship management** between users, sessions, and tasks
+- **JSON fields** for flexible metadata and configuration storage
+
+### Agent Pool System
+- **Domain-specific agent pools**: Healthcare, Financial, Business Automation, Sports Analytics
+- **Dynamic scaling capabilities** for agent pool capacity management
+- **Status tracking** (online, offline, scaling) with real-time updates
+- **Task routing** based on type and agent pool availability
+
+### Task Management
+- **Queue-based task processing** with status tracking (queued, processing, completed, failed)
+- **Progress monitoring** with real-time updates
+- **Metadata storage** for task inputs, outputs, and processing details
+- **Agent pool assignment** based on task type and availability
+
+## Data Flow
+
+1. **User Interaction**: Users interact through the React dashboard or conversational interface
+2. **Command Processing**: Commands are parsed and routed to appropriate services
+3. **Task Creation**: Tasks are created and queued for processing by suitable agent pools
+4. **Agent Assignment**: Tasks are assigned to available agents in appropriate pools
+5. **Processing**: Agents process tasks using OpenAI integration or mock responses
+6. **Status Updates**: Real-time updates flow back through the API to the frontend
+7. **Health Monitoring**: System metrics are continuously collected and stored
+
+## External Dependencies
+
+### Core Dependencies
+- **OpenAI API**: AI processing capabilities (with fallback to mock responses)
+- **Neon Database**: PostgreSQL hosting (configured via DATABASE_URL)
+- **Radix UI**: Accessible component primitives for the UI layer
+
+### Development Tools
+- **Vite**: Frontend build tool and development server
+- **ESBuild**: Backend bundling for production
+- **Drizzle Kit**: Database migrations and schema management
+- **TypeScript**: Type safety across the entire stack
+
+### Runtime Libraries
+- **Express.js**: Web server framework
+- **React Query**: Server state management
+- **Tailwind CSS**: Utility-first styling
+- **Zod**: Runtime type validation and schema definition
+
+## Deployment Strategy
+
+### Development Environment
+- **Vite development server** for frontend with hot module replacement
+- **tsx** for running TypeScript backend in development
+- **Concurrent development** with frontend and backend running simultaneously
+
+### Production Build
+- **Frontend**: Vite builds optimized React application to static files
+- **Backend**: ESBuild bundles Express server with external dependencies
+- **Single deployment**: Combined frontend and backend in unified distribution
+
+### Database Management
+- **Drizzle migrations** for schema version control
+- **Environment-based configuration** via DATABASE_URL
+- **Automatic database provisioning** check on startup
+
+### Configuration Management
+- **Environment variables** for sensitive data (API keys, database URLs)
+- **Type-safe configuration** with runtime validation
+- **Development vs production** environment handling
+
+The architecture prioritizes type safety, developer experience, and scalability while maintaining clear separation between frontend presentation, backend business logic, and data persistence layers. The system is designed to handle enterprise-scale AI agent orchestration with real-time monitoring and conversational interface capabilities.
