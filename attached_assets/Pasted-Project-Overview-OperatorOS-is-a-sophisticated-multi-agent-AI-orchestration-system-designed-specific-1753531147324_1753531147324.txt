@@ -1,0 +1,157 @@
+Project Overview
+OperatorOS is a sophisticated multi-agent AI orchestration system designed specifically to work with Replit Agent as the primary user interface. This is an unconventional architecture where all user interactions happen through Replit Agent conversations rather than traditional web interfaces.
+Key Architecture Components
+Core System Architecture
+
+Frontend: React 18 with TypeScript, built using Vite
+Backend: Express.js REST API server with TypeScript
+Database: PostgreSQL with Drizzle ORM for type-safe operations
+UI Framework: Tailwind CSS with shadcn/ui components
+State Management: TanStack Query for server state management
+
+Agent Pool System
+The system implements specialized agent pools across four domains:
+
+Healthcare Agents: Medical analysis and advice
+Financial Agents: Stock analysis and investment recommendations
+Business Automation Agents: Workflow optimization and management
+Sports Analytics Agents: Sports data analysis and betting strategies
+
+Unique Replit Agent Integration
+
+Primary Interface: Replit Agent serves as both development environment AND user interface
+Conversational Commands: Users interact through natural language with Replit Agent
+Task Orchestration: Commands like "analyze AAPL stock" or "scale healthcare agents" route through the system
+Real-time Monitoring: System status and metrics accessible through conversation
+
+Current System Status (July 2025)
+Operational Features
+
+Real AI Integration: OpenAI GPT-4 and Anthropic Claude APIs with intelligent fallback
+80% Test Suite Success Rate with real API integration
+System Health: 100% operational status
+Dynamic Scaling: Healthcare pool scaled to 7 agents currently
+Task Processing: Queue-based management with real-time status updates
+
+Recent Capabilities Demonstrated
+
+Medical analysis tasks processed successfully
+Stock market analysis and investment recommendations
+Workflow automation implementations
+Sports analytics and betting strategy generation
+
+Translation Context
+As the GitHub to Replit Agent translator, this project represents exactly the type of system you're designed to facilitate - a production-ready codebase that needs seamless deployment through Replit Agent while maintaining its sophisticated multi-agent architecture and conversational interface capabilities.
+The system is already optimized for Replit Agent interaction, making it an ideal candidate for the translation workflow you've been tasked with supporting.RetryPFi would like to upload a photo of an EKG and have a photo generated of the EKG with each component of the EKG labelled (p wave, qrs, PR interval, QRS interval, QT segment and intervals, and relevant findings). for example if there is ST elevations , q waves, etc. it should be labelled on the generated image.    an interpretation of the EKG should also be generated.  remember that we are using replit agent as the UI. prompt it for replit agent.EditSearched project for “healthcare agents medical analysis EKG ECG image processing photo analysis”6 resultsserver/services/command-processor.ts2 relevant sectionstextreplit.md2 relevant sectionstextserver/services/openai-service.tstextserver/test-agent-orchestration.tstextattached_assets/Pasted-Pasted-OperatorOS-Enterprise-AI-Agent-Orchestration-Platform-Replit-Agent-as-UI-Please-create-a-com-1753145985924_1753145985939.txttextserver/services/agent-orchestration.tstextBased on the project knowledge, I can see that OperatorOS has robust healthcare agents capable of medical analysis. Here's the optimal Replit Agent prompt for implementing your EKG analysis and labeling feature:
+
+Replit Agent Prompt for EKG Analysis & Labeling System
+Task: Create an advanced EKG analysis system that processes uploaded EKG images, generates labeled diagrams, and provides clinical interpretations through OperatorOS healthcare agents.
+Implementation Requirements
+Core Functionality:
+
+Image Upload Handler: Accept EKG photo uploads through the existing healthcare agent pool
+AI-Powered Analysis: Use OpenAI GPT-4 Vision API (already integrated) to analyze EKG components
+Label Generation: Create annotated version with medical components identified
+Clinical Interpretation: Generate comprehensive EKG interpretation report
+
+Integration with OperatorOS Architecture
+Route through existing healthcare agents:
+
+Task type: medical_analysis
+Specialized sub-type: ekg_analysis
+Use current OpenAI service integration with vision capabilities
+Leverage existing task queue and progress tracking
+
+Required Components
+1. Enhanced Command Processor Extension:
+typescript// Add to server/services/command-processor.ts
+private async handleEKGAnalysis(imageData: string): Promise<string> {
+  const taskId = await agentOrchestration.routeTask("medical_analysis", {
+    type: "ekg_analysis",
+    image: imageData,
+    analysis_type: "comprehensive_with_labeling"
+  });
+  
+  return `🏥 **EKG Analysis Started**\n\nTask ID: ${taskId}\nProcessing your EKG image...\nThis will include:\n• Component identification\n• Labeled diagram generation\n• Clinical interpretation\n• Abnormality detection`;
+}
+2. OpenAI Vision Integration Enhancement:
+typescript// Extend server/services/openai-service.ts
+private async processEKGImage(imageData: string): Promise<any> {
+  const response = await this.openai.chat.completions.create({
+    model: "gpt-4-vision-preview",
+    messages: [{
+      role: "user",
+      content: [
+        { type: "text", text: "Analyze this EKG image. Identify and label: P waves, QRS complexes, T waves, PR intervals, QT intervals, ST segments. Detect abnormalities like ST elevation, Q waves, arrhythmias. Provide coordinates for labeling." },
+        { type: "image_url", image_url: { url: imageData } }
+      ]
+    }],
+    max_tokens: 1000
+  });
+  
+  return this.parseEKGAnalysis(response.choices[0].message.content);
+}
+3. Image Labeling Generator:
+typescript// New service: server/services/ekg-labeler.ts
+export class EKGLabeler {
+  async generateLabeledImage(originalImage: string, analysisData: any): Promise<string> {
+    // Use Canvas API to overlay labels on original EKG
+    // Return base64 encoded labeled image
+  }
+  
+  async generateInterpretation(analysisData: any): Promise<string> {
+    // Generate clinical interpretation based on findings
+  }
+}
+Conversational Interface Commands
+User can interact through Replit Agent:
+
+"Analyze this EKG image" + image upload
+"Upload EKG for analysis and labeling"
+"I need EKG interpretation with component identification"
+"Process this ECG and show me abnormalities"
+
+Expected Output Format
+Replit Agent Response:
+🏥 **EKG Analysis Complete**
+
+📊 **Components Identified:**
+- P waves: Normal morphology, rate 72 bpm
+- QRS complexes: Normal width (0.08s), no Q waves
+- T waves: Normal in leads I, II, aVF
+- PR interval: 0.16s (normal)
+- QT interval: 0.40s (normal)
+
+⚠️ **Findings:**
+- ST elevation in leads V1-V4 (2-3mm)
+- Reciprocal ST depression in leads II, III, aVF
+- Suggest acute anterior STEMI
+
+🖼️ **Labeled Image**: [Generated image with annotations]
+
+📋 **Clinical Interpretation**: 
+This EKG demonstrates acute ST-elevation myocardial infarction (STEMI) involving the anterior wall. Immediate cardiology consultation and catheterization lab activation recommended.
+
+*Note: This is AI analysis for educational purposes. Always consult with qualified medical professionals for clinical decisions.*
+Implementation Steps
+1. Extend Healthcare Agent Pool:
+
+Add EKG analysis capabilities to existing healthcare agents
+No need to create new agent pools - use current infrastructure
+
+2. Enhance Image Processing:
+
+Integrate with existing OpenAI service
+Add vision model support for medical imaging
+
+3. Update Command Processor:
+
+Add EKG-specific command handling
+Route through existing task orchestration
+
+4. Deploy Label Generation:
+
+Server-side image processing with Canvas API
+Return annotated images through existing API endpoints
+
+This implementation leverages OperatorOS's existing healthcare agent infrastructure while adding specialized EKG analysis capabilities accessible through natural language commands via Replit Agent.

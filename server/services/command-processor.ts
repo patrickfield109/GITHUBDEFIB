@@ -27,6 +27,11 @@ export class CommandProcessor {
         return await this.handleHealthCommand();
       }
 
+      // EKG analysis commands
+      if (this.isEKGCommand(normalizedCommand)) {
+        return await this.handleEKGCommand(normalizedCommand);
+      }
+
       // Demo commands
       if (this.isDemoCommand(normalizedCommand)) {
         return await this.handleDemoCommand(normalizedCommand);
@@ -69,6 +74,11 @@ export class CommandProcessor {
   private isTaskCommand(command: string): boolean {
     const taskKeywords = ["medical", "health", "stock", "investment", "automate", "workflow", "sports", "betting"];
     return taskKeywords.some(keyword => command.includes(keyword));
+  }
+
+  private isEKGCommand(command: string): boolean {
+    const ekgKeywords = ["ekg", "ecg", "electrocardiogram", "heart rhythm", "cardiac analysis"];
+    return ekgKeywords.some(keyword => command.includes(keyword));
   }
 
   private isHealthCommand(command: string): boolean {
@@ -289,13 +299,41 @@ export class CommandProcessor {
            `• "I need medical advice about [symptoms]"\n` +
            `• "Analyze [stock] performance"\n` +
            `• "Help me automate [process]"\n` +
-           `• "Create a sports strategy for [game]"\n\n` +
+           `• "Create a sports strategy for [game]"\n` +
+           `• "Analyze this EKG image"\n\n` +
            `**Agent Management:**\n` +
            `• "Scale up the healthcare agent pool"\n` +
            `• "Check the status of financial agents"\n\n` +
            `**Demos:**\n` +
            `• "Show me a [healthcare/financial/business/sports] demo"\n\n` +
            `Just type your request naturally - I'll understand!`;
+  }
+
+  private async handleEKGCommand(command: string): Promise<string> {
+    return `🏥 **EKG Analysis System Ready**
+
+**Available EKG Analysis Features:**
+• Upload EKG images for comprehensive analysis
+• Component identification (P waves, QRS, T waves)
+• Measurement analysis (PR interval, QT interval, etc.)
+• Abnormality detection (ST elevation, Q waves, arrhythmias)
+• Labeled diagram generation
+• Clinical interpretation
+
+**How to Submit EKG for Analysis:**
+1. Use the API endpoint: POST /api/submit-task
+2. Task type: "medical_analysis"
+3. Include: type: "ekg_analysis", image: "[base64_image_data]"
+
+**Example Command:**
+\`curl -X POST /api/submit-task -H "Content-Type: application/json" -d '{"type": "medical_analysis", "input": {"type": "ekg_analysis", "image": "data:image/png;base64,..." }}'\`
+
+The system will provide:
+• Detailed measurements and analysis
+• Labeled image with component identification
+• Clinical interpretation with recommendations
+
+*Note: For educational purposes only. Always consult medical professionals for clinical decisions.*`;
   }
 
   private getUnrecognizedCommandResponse(command: string): string {

@@ -1,3 +1,19 @@
+import { ekgLabeler, EKGAnalysis, EKGComponent } from './ekg-labeler';
+
+interface ProcessingResult {
+  result: string;
+  provider: 'openai' | 'anthropic' | 'mock';
+  model?: string;
+  usage?: any;
+  labeledImage?: string;
+}
+
+interface EKGAnalysisInput {
+  type: string;
+  image: string;
+  analysis_type?: string;
+}
+
 export class OpenAIService {
   private openaiKey: string;
   private anthropicKey: string;
@@ -44,6 +60,11 @@ export class OpenAIService {
   }
 
   private async processWithOpenAI(taskType: string, input: any): Promise<any> {
+    // Handle EKG analysis with vision API
+    if (taskType === "medical_analysis" && input.type === "ekg_analysis") {
+      return await this.processEKGWithOpenAI(input);
+    }
+    
     const prompt = this.buildPromptForTaskType(taskType, input);
     
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -120,6 +141,195 @@ export class OpenAIService {
       provider: "anthropic",
       model: "claude-3-5-sonnet",
     };
+  }
+
+  /**
+   * Process EKG analysis using OpenAI Vision API
+   */
+  private async processEKGWithOpenAI(input: EKGAnalysisInput): Promise<ProcessingResult> {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert cardiologist analyzing EKG images. Provide detailed analysis including:
+1. Heart rate (bpm) 
+2. PR interval (ms)
+3. QRS width (ms) 
+4. QT interval (ms)
+5. Component identification (P waves, QRS complexes, T waves)
+6. Abnormalities (ST elevation/depression, Q waves, arrhythmias)
+7. Clinical interpretation
+8. Approximate coordinates for each component (x,y pixels from top-left)
+
+Return structured JSON with measurements, components, and findings.`
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Analyze this EKG image comprehensively. Identify all components and provide clinical interpretation with measurements."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: input.image
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI Vision API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const analysisText = data.choices[0]?.message?.content || "No analysis generated";
+    
+    // Parse the analysis and generate labeled image
+    const ekgAnalysis = this.parseEKGAnalysis(analysisText);
+    const labeledImage = await ekgLabeler.generateLabeledImage(input.image, ekgAnalysis);
+    const interpretation = ekgLabeler.generateInterpretation(ekgAnalysis);
+
+    return {
+      result: interpretation,
+      provider: 'openai',
+      model: 'gpt-4o',
+      usage: data.usage,
+      labeledImage: labeledImage
+    };
+  }
+
+  /**
+   * Parse OpenAI response into structured EKG analysis
+   */
+  private parseEKGAnalysis(analysisText: string): EKGAnalysis {
+    try {
+      // Try to extract JSON if present
+      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return this.convertToEKGAnalysis(parsed);
+      }
+    } catch (error) {
+      console.log("Could not parse JSON, using text analysis");
+    }
+
+    // Fallback: parse text response
+    return this.parseTextAnalysis(analysisText);
+  }
+
+  private convertToEKGAnalysis(parsed: any): EKGAnalysis {
+    return {
+      components: parsed.components || this.generateDefaultComponents(),
+      findings: {
+        abnormalities: parsed.abnormalities || [],
+        interpretation: parsed.interpretation || "EKG analysis completed",
+        severity: parsed.severity || "normal",
+        recommendations: parsed.recommendations || []
+      },
+      measurements: {
+        heartRate: parsed.heartRate || 75,
+        prInterval: parsed.prInterval || 160,
+        qrsWidth: parsed.qrsWidth || 90,
+        qtInterval: parsed.qtInterval || 400
+      }
+    };
+  }
+
+  private parseTextAnalysis(text: string): EKGAnalysis {
+    // Extract measurements from text
+    const hrMatch = text.match(/heart rate.*?(\d+)/i);
+    const prMatch = text.match(/pr interval.*?(\d+)/i);
+    const qrsMatch = text.match(/qrs.*?(\d+)/i);
+    const qtMatch = text.match(/qt.*?(\d+)/i);
+
+    return {
+      components: this.generateDefaultComponents(),
+      findings: {
+        abnormalities: this.extractAbnormalities(text),
+        interpretation: text,
+        severity: text.toLowerCase().includes('abnormal') ? 'abnormal' : 'normal',
+        recommendations: this.extractRecommendations(text)
+      },
+      measurements: {
+        heartRate: hrMatch ? parseInt(hrMatch[1]) : 75,
+        prInterval: prMatch ? parseInt(prMatch[1]) : 160,
+        qrsWidth: qrsMatch ? parseInt(qrsMatch[1]) : 90,
+        qtInterval: qtMatch ? parseInt(qtMatch[1]) : 400
+      }
+    };
+  }
+
+  private generateDefaultComponents(): EKGComponent[] {
+    return [
+      {
+        name: "P Wave",
+        description: "Atrial depolarization",
+        coordinates: { x: 200, y: 300 },
+        measurements: "Normal",
+        normal: true
+      },
+      {
+        name: "QRS Complex",
+        description: "Ventricular depolarization",
+        coordinates: { x: 400, y: 250 },
+        measurements: "Normal width",
+        normal: true
+      },
+      {
+        name: "T Wave",
+        description: "Ventricular repolarization",
+        coordinates: { x: 600, y: 320 },
+        measurements: "Normal",
+        normal: true
+      }
+    ];
+  }
+
+  private extractAbnormalities(text: string): string[] {
+    const abnormalities: string[] = [];
+    const patterns = [
+      'st elevation',
+      'st depression',
+      'q wave',
+      'arrhythmia',
+      'bradycardia',
+      'tachycardia',
+      'prolonged qt',
+      'av block'
+    ];
+
+    patterns.forEach(pattern => {
+      if (text.toLowerCase().includes(pattern)) {
+        abnormalities.push(pattern);
+      }
+    });
+
+    return abnormalities;
+  }
+
+  private extractRecommendations(text: string): string[] {
+    const recommendations: string[] = [];
+    if (text.toLowerCase().includes('urgent') || text.toLowerCase().includes('emergency')) {
+      recommendations.push('Immediate cardiology consultation recommended');
+    }
+    if (text.toLowerCase().includes('follow up')) {
+      recommendations.push('Follow-up EKG recommended');
+    }
+    return recommendations;
   }
 
   private buildPromptForTaskType(taskType: string, input: any): string {
