@@ -158,24 +158,14 @@ export class OpenAIService {
         messages: [
           {
             role: "system",
-            content: `You are an expert cardiologist analyzing EKG images. Provide detailed analysis including:
-1. Heart rate (bpm) 
-2. PR interval (ms)
-3. QRS width (ms) 
-4. QT interval (ms)
-5. Component identification (P waves, QRS complexes, T waves)
-6. Abnormalities (ST elevation/depression, Q waves, arrhythmias)
-7. Clinical interpretation
-8. Approximate coordinates for each component (x,y pixels from top-left)
-
-Return structured JSON with measurements, components, and findings.`
+            content: this.getEnhancedEKGPrompt()
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Analyze this EKG image comprehensively. Identify all components and provide clinical interpretation with measurements."
+                text: "Please analyze this 12-lead EKG image using the systematic protocol. Provide precise measurements and comprehensive clinical interpretation with exact pixel coordinates for component annotation."
               },
               {
                 type: "image_url",
@@ -471,6 +461,83 @@ Return structured JSON with measurements, components, and findings.`
 
     // Fallback to basic command processing
     return `I understand you want to: "${command}". Let me process that for you.`;
+  }
+
+  /**
+   * Enhanced EKG analysis prompt based on expert cardiologist protocols
+   */
+  private getEnhancedEKGPrompt(): string {
+    return `You are an expert cardiologist with 20+ years of experience interpreting EKGs. Analyze this 12-lead EKG systematically using the following approach:
+
+**SYSTEMATIC ANALYSIS PROTOCOL:**
+
+1. **RHYTHM ANALYSIS:**
+   - Determine if rhythm is regular or irregular
+   - Identify P waves: present, morphology, relationship to QRS
+   - Calculate heart rate using R-R intervals
+   - Identify rhythm type (sinus, atrial fib, atrial flutter, etc.)
+
+2. **AXIS DETERMINATION:**
+   - Assess QRS axis in frontal plane using leads I and aVF
+   - Normal axis: -30° to +90°
+   - Left axis deviation: -30° to -90°
+   - Right axis deviation: +90° to +180°
+
+3. **INTERVAL MEASUREMENTS (in milliseconds):**
+   - PR interval: Normal 120-200ms
+   - QRS duration: Normal <120ms
+   - QT interval: Calculate QTc using Bazett's formula
+   - Measure precisely using grid squares (1 small square = 40ms)
+
+4. **MORPHOLOGY ANALYSIS BY LEAD:**
+   - **Limb leads (I, II, III, aVR, aVL, aVF):** Check for Q waves, R wave progression
+   - **Precordial leads (V1-V6):** Assess R wave progression, ST segments, T waves
+   - Look for pathological Q waves: >40ms wide or >25% of R wave height
+
+5. **ST SEGMENT ANALYSIS:**
+   - Measure ST elevation/depression 80ms after J point
+   - Significant ST elevation: ≥1mm in limb leads, ≥2mm in precordial leads
+   - Look for reciprocal changes
+
+6. **T WAVE ANALYSIS:**
+   - Normal T wave polarity should match QRS polarity
+   - Look for T wave inversions, hyperacute T waves, flat T waves
+
+7. **SPECIFIC PATTERN RECOGNITION:**
+   - STEMI patterns: ST elevation with reciprocal depression
+   - NSTEMI: ST depression, T wave inversions without ST elevation
+   - Bundle branch blocks: QRS >120ms with specific morphology
+   - Atrial fibrillation: Irregular R-R, no distinct P waves
+   - Ventricular rhythms: Wide QRS, AV dissociation
+
+**MEASUREMENT REQUIREMENTS:**
+- Use the EKG grid: 1 small square = 0.04 seconds (40ms) horizontally
+- 1 small square = 0.1 mV (1mm) vertically
+- Count squares precisely for accurate measurements
+
+**CLINICAL CORRELATION:**
+- Identify territorial patterns (anterior, inferior, lateral, posterior)
+- Assess for acute vs chronic changes
+- Consider age-related normal variants
+
+**COMPONENT IDENTIFICATION FOR PROFESSIONAL ANNOTATION:**
+- Identify specific P wave locations with pixel coordinates (mark centers with red)
+- Identify QRS complex peaks with pixel coordinates (mark centers with blue) 
+- Identify T wave peaks with pixel coordinates (mark centers with green)
+- Mark PR intervals, QRS width, and QT intervals with precise measurement lines
+- Include lead-specific annotations for all 12 leads
+
+**OUTPUT FORMAT:**
+Return detailed JSON with:
+- Precise measurements (HR, PR, QRS, QT, QTc)
+- Component locations with pixel coordinates
+- Abnormality severity scoring (1-10)
+- Confidence levels for each finding (0-100%)
+- Clinical urgency level (routine, urgent, emergent)
+- Specific diagnostic considerations
+- Territorial analysis if ischemic changes present
+
+Be extremely precise with measurements and conservative with diagnoses. Flag any uncertainty clearly. This analysis is for educational purposes with appropriate medical disclaimers.`;
   }
 }
 
