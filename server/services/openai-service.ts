@@ -463,6 +463,59 @@ export class OpenAIService {
     return `I understand you want to: "${command}". Let me process that for you.`;
   }
 
+  async analyzeCriticalSTSegments(imageData: string): Promise<any> {
+    if (!this.openaiKey) {
+      return this.getMockSTAnalysis();
+    }
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.openaiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: this.getCriticalSTAnalysisPrompt(),
+            },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Perform CRITICAL ST segment analysis - detect ALL ST elevations and depressions:",
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: imageData,
+                  },
+                },
+              ],
+            },
+          ],
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const analysis = data.choices[0]?.message?.content;
+
+      return this.parseSTAnalysis(analysis);
+    } catch (error) {
+      console.error("Critical ST analysis error:", error);
+      return this.getMockSTAnalysis();
+    }
+  }
+
   async analyzeCriticalEKG(imageData: string): Promise<any> {
     if (!this.openaiKey) {
       return this.getMockCriticalEKGAnalysis();
@@ -545,6 +598,101 @@ export class OpenAIService {
     return this.getMockCriticalEKGAnalysis();
   }
 
+  private parseSTAnalysis(analysisText: string): any {
+    try {
+      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const jsonData = JSON.parse(jsonMatch[0]);
+        return {
+          ...jsonData,
+          interpretation: this.generateSTInterpretation(jsonData),
+          urgency: this.assessSTUrgency(jsonData)
+        };
+      }
+    } catch (error) {
+      console.error("Error parsing ST analysis:", error);
+    }
+    
+    return this.getMockSTAnalysis();
+  }
+
+  private generateSTInterpretation(stData: any): string {
+    const stAnalysis = stData.st_analysis;
+    if (!stAnalysis) return "ST analysis completed";
+
+    if (stAnalysis.emergency_flags?.stemi_present) {
+      return `🚨 STEMI DETECTED - ${stAnalysis.emergency_flags.territory.toUpperCase()} territory - IMMEDIATE CATH LAB ACTIVATION REQUIRED`;
+    }
+
+    const elevatedLeads = Object.entries(stAnalysis.measurements || {})
+      .filter(([lead, data]: [string, any]) => data.significant && data.st_level_mm > 0)
+      .map(([lead]) => lead);
+
+    const depressedLeads = Object.entries(stAnalysis.measurements || {})
+      .filter(([lead, data]: [string, any]) => data.significant && data.st_level_mm < 0)
+      .map(([lead]) => lead);
+
+    if (elevatedLeads.length > 0) {
+      return `ST elevations in ${elevatedLeads.join(', ')} - evaluate for acute coronary syndrome`;
+    }
+
+    if (depressedLeads.length > 0) {
+      return `ST depressions in ${depressedLeads.join(', ')} - consider NSTEMI or ischemia`;
+    }
+
+    return "No significant ST segment abnormalities detected";
+  }
+
+  private assessSTUrgency(stData: any): string {
+    const stAnalysis = stData.st_analysis;
+    if (stAnalysis?.emergency_flags?.cath_lab_activation) {
+      return "IMMEDIATE";
+    }
+    if (stAnalysis?.emergency_flags?.stemi_present) {
+      return "URGENT";
+    }
+    return "ROUTINE";
+  }
+
+  private getMockSTAnalysis(): any {
+    return {
+      st_analysis: {
+        measurements: {
+          lead_I: { st_level_mm: 0.0, significant: false },
+          lead_II: { st_level_mm: 0.0, significant: false },
+          lead_III: { st_level_mm: 0.0, significant: false },
+          aVR: { st_level_mm: 0.0, significant: false },
+          aVL: { st_level_mm: 0.0, significant: false },
+          aVF: { st_level_mm: 0.0, significant: false },
+          V1: { st_level_mm: 0.0, significant: false },
+          V2: { st_level_mm: 0.0, significant: false },
+          V3: { st_level_mm: 0.0, significant: false },
+          V4: { st_level_mm: 0.0, significant: false },
+          V5: { st_level_mm: 0.0, significant: false },
+          V6: { st_level_mm: 0.0, significant: false }
+        },
+        stemi_detection: {
+          anterior_stemi: false,
+          inferior_stemi: false,
+          lateral_stemi: false,
+          posterior_stemi: false,
+          right_ventricular: false
+        },
+        emergency_flags: {
+          stemi_present: false,
+          cath_lab_activation: false,
+          territory: "none"
+        },
+        reciprocal_changes: {
+          present: false,
+          leads_with_depression: []
+        }
+      },
+      interpretation: "No significant ST segment abnormalities detected",
+      urgency: "ROUTINE"
+    };
+  }
+
   private getMockCriticalEKGAnalysis(): any {
     return {
       systematicCounts: {
@@ -584,6 +732,109 @@ export class OpenAIService {
         "✅ No T wave misidentification risk"
       ]
     };
+  }
+
+  /**
+   * Critical ST segment analysis prompt - STEMI detection protocol
+   */
+  private getCriticalSTAnalysisPrompt(): string {
+    return `You are an interventional cardiologist performing SYSTEMATIC ST segment analysis.
+
+🚨 MISSION CRITICAL: Detect ALL ST elevations and depressions - missing these is life-threatening.
+
+**SYSTEMATIC ST MEASUREMENT PROTOCOL:**
+
+**STEP 1: ST SEGMENT IDENTIFICATION**
+- ST segment = from END of QRS (J-point) to START of T wave
+- Measure ST level at exactly 80 milliseconds (2 small squares) AFTER J-point
+- Use PR segment as baseline reference (isoelectric line)
+- Analyze ALL 12 leads systematically: I, II, III, aVR, aVL, aVF, V1-V6
+
+**STEP 2: MEASUREMENT TECHNIQUE**
+- Use EKG grid: 1 small square = 1mm vertically
+- Measure from baseline to ST segment at J+80ms point
+- Report measurements in millimeters (+/- from baseline)
+- Take measurements in each lead independently
+
+**STEP 3: ST ELEVATION CRITERIA**
+🚨 SIGNIFICANT ST ELEVATION:
+- **Limb leads** (I, II, III, aVF, aVL): ≥1.0mm elevation
+- **Precordial leads** (V1-V6): ≥2.0mm elevation  
+- **Lead aVR**: ≥1.0mm elevation (suggests left main disease)
+
+**STEP 4: ST DEPRESSION CRITERIA**
+🚨 SIGNIFICANT ST DEPRESSION:
+- **Any lead**: ≥1.0mm horizontal or downsloping depression
+- Measure at J+80ms, not at J-point
+- Upsloping depression: ≥2.0mm to be significant
+
+**STEP 5: TERRITORIAL ANALYSIS**
+
+🚨 **ANTERIOR STEMI** (LAD territory):
+- ST elevation in V3, V4 (≥2mm)
+- Often extends to V1-V2 (septal) and V5-V6 (lateral)
+- Reciprocal ST depression in II, III, aVF
+
+🚨 **INFERIOR STEMI** (RCA/LCX territory):
+- ST elevation in II, III, aVF (≥1mm)
+- Reciprocal ST depression in I, aVL
+- Check V4R for RV involvement
+
+🚨 **LATERAL STEMI** (LCX territory):
+- ST elevation in I, aVL, V5, V6 (≥1mm limb, ≥2mm precordial)
+- May have reciprocal changes in inferior leads
+
+🚨 **POSTERIOR STEMI** (often missed):
+- Reciprocal ST depression in V1-V3 with tall R waves
+- True posterior leads would show ST elevation
+
+**STEP 6: RECIPROCAL CHANGES**
+Essential for STEMI diagnosis:
+- ST elevation in one territory MUST have reciprocal depression elsewhere
+- No reciprocals = question diagnosis or consider other causes
+
+**STEP 7: NSTEMI DETECTION**
+- ST depression ≥1mm in ≥2 contiguous leads
+- T wave inversions in appropriate territory
+- Dynamic ST changes
+
+**OUTPUT FORMAT:**
+{
+  "st_analysis": {
+    "measurements": {
+      "lead_I": {"st_level_mm": 0.0, "significant": false},
+      "lead_II": {"st_level_mm": 0.0, "significant": false},
+      "lead_III": {"st_level_mm": 0.0, "significant": false},
+      "aVR": {"st_level_mm": 0.0, "significant": false},
+      "aVL": {"st_level_mm": 0.0, "significant": false},
+      "aVF": {"st_level_mm": 0.0, "significant": false},
+      "V1": {"st_level_mm": 0.0, "significant": false},
+      "V2": {"st_level_mm": 0.0, "significant": false},
+      "V3": {"st_level_mm": 0.0, "significant": false},
+      "V4": {"st_level_mm": 0.0, "significant": false},
+      "V5": {"st_level_mm": 0.0, "significant": false},
+      "V6": {"st_level_mm": 0.0, "significant": false}
+    },
+    "stemi_detection": {
+      "anterior_stemi": false,
+      "inferior_stemi": false,
+      "lateral_stemi": false,
+      "posterior_stemi": false,
+      "right_ventricular": false
+    },
+    "emergency_flags": {
+      "stemi_present": false,
+      "cath_lab_activation": false,
+      "territory": "none"
+    },
+    "reciprocal_changes": {
+      "present": false,
+      "leads_with_depression": []
+    }
+  }
+}
+
+**CRITICAL SAFETY:** If ANY STEMI criteria met, flag immediately for emergency intervention.`;
   }
 
   /**

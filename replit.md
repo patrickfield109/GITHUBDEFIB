@@ -138,14 +138,14 @@ The architecture prioritizes type safety, developer experience, and scalability 
 - Values understanding what the system can actually do in practice
 - Interested in EKG analysis capabilities for medical image processing
 
-### Recent Enhancement (July 27, 2025) - Critical EKG Analysis System
+### Recent Enhancement (July 27, 2025) - Critical EKG & STEMI Detection System
 - **Critical Component Tracking**: Systematic P wave and QRS complex counting with systematic validation protocols
 - **Heart Block Detection Engine**: Complete AV dissociation detection to prevent missing life-threatening conditions
-- **Enhanced Safety Protocols**: Never miss complete heart block through systematic rate comparison and morphology validation
-- **T Wave vs QRS Distinction**: Advanced morphology validation to prevent misidentification in rate calculations
-- **Emergency Flag System**: Immediate alerts for complete heart block, AV dissociation, and rate discrepancies
-- **Systematic Analysis Framework**: 6-second rhythm strip focus with precise grid-based measurements (40ms squares)
+- **STEMI Detection Protocol**: Systematic ST segment analysis preventing missed heart attacks requiring cath lab activation
+- **ST Elevation Criteria**: Precise measurements (≥1mm limb leads, ≥2mm precordial) with territorial mapping
+- **Emergency Flag System**: Immediate alerts for STEMI, complete heart block, AV dissociation, and rate discrepancies
+- **Territorial Analysis**: Anterior, Inferior, Lateral, Posterior STEMI detection with reciprocal change validation
 - **Professional Medical Standards**: Conservative diagnostic approach with uncertainty flagging and confidence scoring
-- **Critical API Endpoints**: /api/analyze-critical-ekg for life-saving systematic analysis with enhanced accuracy
-- **Multi-Layer Validation**: Component tracking service, heart block detector, and morphology validator integration
-- **Enhanced Command Processing**: Conversational interface recognizes critical EKG analysis requests with specialized prompts
+- **Critical API Endpoints**: /api/analyze-critical-st for STEMI detection, /api/analyze-critical-ekg for component tracking
+- **Multi-Layer Validation**: Component tracking service, heart block detector, ST analyzer, and morphology validator integration
+- **Enhanced Command Processing**: Conversational interface recognizes STEMI analysis requests with emergency protocols

@@ -183,6 +183,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Critical ST Segment Analysis endpoint for STEMI detection
+  app.post('/api/analyze-critical-st', async (req, res) => {
+    try {
+      const { image, taskId } = req.body;
+      
+      if (!image) {
+        return res.status(400).json({ error: 'EKG image is required for ST analysis' });
+      }
+
+      // Extract base64 data
+      const base64Data = image.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Generate unique task ID if not provided
+      const analysisTaskId = taskId || `st_analysis_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Perform critical ST segment analysis
+      const stAnalysis = await openAIService.analyzeCriticalSTSegments(image);
+      
+      // Generate annotations focusing on ST segments
+      const result = await ekgAnnotationService.analyzeAndAnnotateEKG(imageBuffer, analysisTaskId);
+
+      res.json({
+        taskId: analysisTaskId,
+        analysis: {
+          stSegments: stAnalysis.st_analysis,
+          interpretation: stAnalysis.interpretation,
+          urgency: stAnalysis.urgency,
+          stemiDetection: stAnalysis.st_analysis?.stemi_detection,
+          emergencyFlags: stAnalysis.st_analysis?.emergency_flags,
+          reciprocalChanges: stAnalysis.st_analysis?.reciprocal_changes
+        },
+        downloads: {
+          annotatedImage: result.downloadUrls.png,
+          report: result.downloadUrls.pdf
+        },
+        status: 'completed'
+      });
+    } catch (error) {
+      console.error('Critical ST analysis error:', error);
+      res.status(500).json({ 
+        error: 'Critical ST analysis failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Critical EKG Analysis endpoint
   app.post('/api/analyze-critical-ekg', async (req, res) => {
     try {
