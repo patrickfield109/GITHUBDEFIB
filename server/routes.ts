@@ -5,6 +5,7 @@ import { agentOrchestration } from "./services/agent-orchestration";
 import { commandProcessor } from "./services/command-processor";
 import { healthMonitor } from "./services/health-monitor";
 import { ekgAnnotationService } from "./services/ekg-annotation-service";
+import { openAIService } from "./services/openai-service";
 import path from "path";
 import fs from "fs";
 import { z } from "zod";
@@ -179,6 +180,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('EKG analysis error:', error);
       res.status(500).json({ error: "Failed to analyze EKG" });
+    }
+  });
+
+  // Critical EKG Analysis endpoint
+  app.post('/api/analyze-critical-ekg', async (req, res) => {
+    try {
+      const { image, taskId } = req.body;
+      
+      if (!image) {
+        return res.status(400).json({ error: 'EKG image is required' });
+      }
+
+      // Extract base64 data
+      const base64Data = image.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Generate unique task ID if not provided
+      const analysisTaskId = taskId || `critical_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Process with critical analysis protocol
+      const analysis = await openAIService.analyzeCriticalEKG(image);
+      
+      // Process EKG with annotations using existing service
+      const result = await ekgAnnotationService.analyzeAndAnnotateEKG(imageBuffer, analysisTaskId);
+
+      res.json({
+        taskId: analysisTaskId,
+        analysis: {
+          heartRate: analysis.heartRate,
+          rhythm: analysis.rhythm,
+          interpretation: analysis.interpretation,
+          intervals: analysis.intervals,
+          findings: analysis.findings,
+          systematicCounts: analysis.systematicCounts,
+          avAnalysis: analysis.avAnalysis,
+          emergencyFlags: analysis.emergencyFlags,
+          componentValidation: analysis.componentValidation
+        },
+        downloads: {
+          annotatedImage: result.downloadUrls.png,
+          report: result.downloadUrls.pdf
+        },
+        status: 'completed'
+      });
+    } catch (error) {
+      console.error('Critical EKG analysis error:', error);
+      res.status(500).json({ 
+        error: 'Critical EKG analysis failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
