@@ -29,7 +29,7 @@ export class CommandProcessor {
 
       // EKG analysis commands
       if (this.isEKGCommand(normalizedCommand)) {
-        return await this.handleEKGCommand(normalizedCommand);
+        return await this.handleEKGAnalysisCommand(normalizedCommand);
       }
 
       // Demo commands
@@ -309,31 +309,55 @@ export class CommandProcessor {
            `Just type your request naturally - I'll understand!`;
   }
 
-  private async handleEKGCommand(command: string): Promise<string> {
-    return `🏥 **EKG Analysis System Ready**
+  private async handleEKGAnalysisCommand(command: string): Promise<string> {
+    return `🏥 **EKG Analysis with Downloadable Annotations**
 
-**Available EKG Analysis Features:**
-• Upload EKG images for comprehensive analysis
-• Component identification (P waves, QRS, T waves)
-• Measurement analysis (PR interval, QT interval, etc.)
-• Abnormality detection (ST elevation, Q waves, arrhythmias)
-• Labeled diagram generation
-• Clinical interpretation
+**Enhanced Analysis Features:**
+• Professional color-coded component labeling
+• High-resolution annotated image generation
+• Downloadable PNG and PDF reports
+• Clinical interpretation with measurements
+• Medical-grade annotation precision
 
-**How to Submit EKG for Analysis:**
-1. Use the API endpoint: POST /api/submit-task
-2. Task type: "medical_analysis"
-3. Include: type: "ekg_analysis", image: "[base64_image_data]"
+**Color-Coded Component System:**
+🔴 P waves (red markers)
+🔵 QRS complexes (blue markers)  
+🟢 T waves (green markers)
+🟠 PR intervals (orange measurement lines)
+🟣 QRS width (purple measurement lines)
+🟡 QT intervals (yellow measurement lines)
 
-**Example Command:**
-\`curl -X POST /api/submit-task -H "Content-Type: application/json" -d '{"type": "medical_analysis", "input": {"type": "ekg_analysis", "image": "data:image/png;base64,..." }}'\`
+**How to Get Downloadable EKG Analysis:**
+1. **Direct API**: POST /api/analyze-ekg
+2. **Include**: {"image": "data:image/png;base64,[your_ekg_data]"}
+3. **Response includes**: Download links for annotated image and PDF report
 
-The system will provide:
-• Detailed measurements and analysis
-• Labeled image with component identification
-• Clinical interpretation with recommendations
+**Example Usage:**
+\`curl -X POST /api/analyze-ekg -H "Content-Type: application/json" -d '{"image": "data:image/png;base64,[base64_data]"}'\`
 
-*Note: For educational purposes only. Always consult medical professionals for clinical decisions.*`;
+**What You Get:**
+✅ Fully annotated EKG with professional legend
+✅ High-resolution PNG download (print-ready)
+✅ PDF clinical report with interpretation
+✅ Secure 24-hour download links
+✅ All components labeled and measured
+
+**Sample Response:**
+\`{
+  "taskId": "ekg_12345",
+  "status": "completed",
+  "analysis": {
+    "heartRate": 75,
+    "rhythm": "Normal Sinus Rhythm",
+    "interpretation": "Normal EKG"
+  },
+  "downloads": {
+    "annotatedImage": "/api/download/ekg_annotated_12345.png",
+    "report": "/api/download/ekg_report_12345.pdf"
+  }
+}\`
+
+*Medical Disclaimer: For educational purposes only. Professional medical consultation required.*`;
   }
 
   private getUnrecognizedCommandResponse(command: string): string {

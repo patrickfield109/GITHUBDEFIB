@@ -4,6 +4,9 @@ import { storage } from "./storage";
 import { agentOrchestration } from "./services/agent-orchestration";
 import { commandProcessor } from "./services/command-processor";
 import { healthMonitor } from "./services/health-monitor";
+import { ekgAnnotationService } from "./services/ekg-annotation-service";
+import path from "path";
+import fs from "fs";
 import { z } from "zod";
 import { insertConversationSessionSchema, insertTaskSchema } from "@shared/schema";
 
@@ -134,6 +137,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ response });
     } catch (error) {
       res.status(500).json({ error: "Failed to process command" });
+    }
+  });
+
+  // EKG Analysis with downloadable annotations
+  app.post("/api/analyze-ekg", async (req, res) => {
+    try {
+      const { image, taskId } = req.body;
+      
+      if (!image || !image.startsWith('data:image/')) {
+        return res.status(400).json({ error: "Valid image data required" });
+      }
+      
+      // Extract base64 data
+      const base64Data = image.replace(/^data:image\/[a-z]+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Generate unique task ID if not provided
+      const analysisTaskId = taskId || `ekg_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      
+      // Process EKG with annotations
+      const result = await ekgAnnotationService.analyzeAndAnnotateEKG(imageBuffer, analysisTaskId);
+      
+      res.json({
+        taskId: analysisTaskId,
+        status: "completed",
+        analysis: {
+          heartRate: result.analysis.heartRate,
+          rhythm: result.analysis.rhythm,
+          intervals: result.analysis.intervals,
+          findings: result.analysis.findings,
+          interpretation: result.analysis.findings.includes('Normal') ? 'Normal EKG' : 'Abnormal findings detected'
+        },
+        downloads: {
+          annotatedImage: result.downloadUrls.png,
+          report: result.downloadUrls.pdf
+        },
+        message: "EKG analysis completed with downloadable annotations"
+      });
+      
+    } catch (error) {
+      console.error('EKG analysis error:', error);
+      res.status(500).json({ error: "Failed to analyze EKG" });
+    }
+  });
+
+  // Download endpoint for generated files
+  app.get("/api/download/:filename", (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const downloadPath = path.join(process.cwd(), 'downloads', filename);
+      
+      if (!fs.existsSync(downloadPath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      // Set appropriate headers
+      const ext = path.extname(filename).toLowerCase();
+      const contentType = ext === '.pdf' ? 'application/pdf' : 'image/png';
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      // Stream the file
+      const fileStream = fs.createReadStream(downloadPath);
+      fileStream.pipe(res);
+      
+    } catch (error) {
+      res.status(500).json({ error: "Download failed" });
     }
   });
 

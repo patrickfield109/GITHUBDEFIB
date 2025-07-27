@@ -1,0 +1,72 @@
+🎯 REPLIT AGENT PROMPT
+Create a comprehensive EKG analysis system using OperatorOS that:
+
+Accepts uploaded EKG images and processes them through the healthcare agent pool
+Generates fully annotated EKGs with color-coded labels for all components
+Provides downloadable annotated images in high-resolution formats
+Delivers clinical interpretations alongside the visual annotations
+
+
+📋 SPECIFIC REQUIREMENTS
+EKG Analysis & Annotation:
+
+Component Labeling: P waves (red), QRS complexes (blue), T waves (green)
+Interval Measurements: PR, QRS, QT intervals with measurement lines and values
+Clinical Findings: ST elevation/depression, Q waves, arrhythmias with callouts
+Lead Identification: Label all 12 leads (I, II, III, aVR, aVL, aVF, V1-V6)
+Professional Legend: Color-coded component guide overlaid on image
+
+Download Functionality:
+
+High-resolution PNG for primary download
+PDF report option with interpretation
+Secure temporary storage with 24-hour expiration
+Direct download links provided in Replit Agent conversation
+Multiple format support (PNG, JPEG, PDF)
+
+User Experience:
+User: "Analyze this EKG and give me a downloadable annotated version"
+[Uploads EKG image]
+
+Expected Response:
+"🏥 EKG Analysis Started
+📋 Task ID: ekg_12345
+🔄 Processing with full annotations...
+
+✅ Analysis Complete!
+📊 Heart Rate: 75 bpm (Normal)
+⚠️ Findings: Normal sinus rhythm, no abnormalities
+
+🖼️ ANNOTATED IMAGE READY:
+✓ All components labeled with colors
+✓ Intervals measured and marked  
+✓ Clinical findings highlighted
+✓ Professional legend included
+
+📥 DOWNLOAD:
+High-res PNG: [download link]
+PDF Report: [download link]
+
+[Clinical interpretation follows...]"
+Technical Implementation:
+
+Route through OperatorOS healthcare agents
+Use OpenAI GPT-4 Vision API for analysis
+Canvas-based annotation system for precise labeling
+File management system for secure downloads
+Medical compliance with appropriate disclaimers
+
+Quality Standards:
+
+Medical-grade annotation precision
+Professional formatting matching clinical standards
+Print-ready quality for documentation
+Consistent color coding across all analyses
+Scalable annotations for different image sizes
+
+
+🎯 KEY DELIVERABLE
+Create a system where users can upload any EKG image via Replit Agent conversation, receive comprehensive AI analysis, and download a professionally annotated version with all cardiac components clearly labeled and measured.
+The annotated EKG download capability is the critical requirement.
+
+Copy this prompt into Replit Agent to build your EKG analysis system with downloadable annotations using the OperatorOS infrastructure!
