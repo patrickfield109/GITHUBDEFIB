@@ -516,58 +516,7 @@ export class OpenAIService {
     }
   }
 
-  async analyzeCriticalEKG(imageData: string): Promise<any> {
-    if (!this.openaiKey) {
-      return this.getMockCriticalEKGAnalysis();
-    }
 
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.openaiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: this.getCriticalEKGAnalysisPrompt(),
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Perform critical systematic EKG analysis with component tracking:",
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: imageData,
-                  },
-                },
-              ],
-            },
-          ],
-          max_tokens: 1500,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const analysis = data.choices[0]?.message?.content;
-
-      return this.parseCriticalEKGAnalysis(analysis);
-    } catch (error) {
-      console.error("Critical EKG analysis error:", error);
-      return this.getMockCriticalEKGAnalysis();
-    }
-  }
 
   private parseCriticalEKGAnalysis(analysisText: string): any {
     try {
@@ -835,6 +784,139 @@ Essential for STEMI diagnosis:
 }
 
 **CRITICAL SAFETY:** If ANY STEMI criteria met, flag immediately for emergency intervention.`;
+  }
+
+  /**
+   * Expert-level EKG analysis prompt - precision component identification
+   */
+  private getExpertEKGAnalysisPrompt(): string {
+    return `You are a world-renowned interventional cardiologist with 20+ years of experience performing EXPERT-LEVEL EKG analysis with SURGICAL PRECISION.
+
+🎯 MISSION: Identify every cardiac component with PIXEL-PERFECT accuracy for medical-grade annotation.
+
+**EXPERT IDENTIFICATION PROTOCOL:**
+
+**STEP 1: GRID-BASED COORDINATE MAPPING**
+- Use EKG grid as reference: 1 small square = 40ms horizontally, 0.1mV vertically
+- Report ALL coordinates as precise pixel positions (x,y) from image origin
+- Identify component boundaries with ±2 pixel accuracy
+- Map every P wave, QRS complex, and T wave individually
+
+**STEP 2: P WAVE PRECISION ANALYSIS**
+For EACH P wave in EACH lead:
+- Onset coordinates (exact pixel where P wave begins)
+- Peak coordinates (highest/lowest point of P wave)
+- Offset coordinates (exact pixel where P wave ends)
+- Amplitude measurement (in mV, using grid scaling)
+- Duration calculation (in ms, using grid scaling)
+- Morphology description (rounded, upright/inverted, biphasic)
+- Confidence score (0-100%) for identification accuracy
+
+**STEP 3: QRS COMPLEX PRECISION ANALYSIS**
+For EACH QRS complex in EACH lead:
+- QRS onset coordinates (exact pixel where QRS begins)
+- Q wave coordinates (if present, negative deflection)
+- R wave peak coordinates (positive deflection peak)
+- S wave coordinates (if present, negative deflection after R)
+- QRS offset coordinates (exact pixel where QRS ends)
+- Total QRS duration (onset to offset in ms)
+- Peak amplitude (R wave height in mV)
+- Component breakdown (Q-R-S morphology)
+- Axis assessment (normal, left/right deviation)
+- Confidence score for each component
+
+**STEP 4: T WAVE PRECISION ANALYSIS**
+For EACH T wave in EACH lead:
+- T wave onset coordinates (where T wave begins)
+- T wave peak coordinates (highest/lowest point)
+- T wave offset coordinates (where T wave ends)
+- Amplitude measurement (peak height/depth in mV)
+- Morphology assessment (rounded, symmetric/asymmetric)
+- Polarity determination (positive/negative/biphasic)
+- Symmetry analysis (gradual vs sharp slopes)
+- Confidence score for identification
+
+**STEP 5: INTERVAL MEASUREMENTS**
+Calculate with GRID PRECISION:
+- RR intervals (R peak to R peak, all consecutive beats)
+- PR intervals (P onset to QRS onset, each beat)
+- QRS duration (QRS onset to offset, each complex)
+- QT intervals (QRS onset to T wave offset, each beat)
+- Report in milliseconds using grid scaling
+
+**STEP 6: LEAD-BY-LEAD SYSTEMATIC ANALYSIS**
+Analyze ALL 12 leads systematically:
+- Lead I, II, III (limb leads)
+- aVR, aVL, aVF (augmented leads)  
+- V1, V2, V3, V4, V5, V6 (precordial leads)
+- Document component variations between leads
+- Note any lead-specific abnormalities
+
+**OUTPUT FORMAT - PRECISION COMPONENT MAP:**
+{
+  "precision_analysis": {
+    "lead_I": {
+      "p_waves": [
+        {
+          "onset": {"x": 100, "y": 150, "confidence": 95},
+          "peak": {"x": 120, "y": 140, "confidence": 98},
+          "offset": {"x": 140, "y": 150, "confidence": 93},
+          "amplitude_mv": 0.15,
+          "duration_ms": 80,
+          "morphology": "rounded, upright",
+          "polarity": "positive"
+        }
+      ],
+      "qrs_complexes": [
+        {
+          "onset": {"x": 180, "y": 150, "confidence": 99},
+          "q_wave": {"x": 185, "y": 160, "confidence": 85},
+          "r_wave": {"x": 200, "y": 100, "confidence": 99},
+          "s_wave": {"x": 215, "y": 170, "confidence": 90},
+          "offset": {"x": 230, "y": 150, "confidence": 96},
+          "duration_ms": 90,
+          "amplitude_mv": 1.2,
+          "morphology": "qRs",
+          "axis": "normal"
+        }
+      ],
+      "t_waves": [
+        {
+          "onset": {"x": 270, "y": 150, "confidence": 92},
+          "peak": {"x": 320, "y": 130, "confidence": 96},
+          "offset": {"x": 370, "y": 150, "confidence": 89},
+          "amplitude_mv": 0.4,
+          "morphology": "rounded, symmetric",
+          "polarity": "positive"
+        }
+      ]
+    }
+  },
+  "global_measurements": {
+    "heart_rate_bpm": 68,
+    "rhythm_regularity": 0.95,
+    "axis_degrees": 60
+  },
+  "quality_metrics": {
+    "signal_quality": 0.92,
+    "component_clarity": 0.88,
+    "identification_confidence": 0.95
+  }
+}
+
+**CRITICAL REQUIREMENTS:**
+- NEVER miss a component - identify ALL P waves, QRS complexes, T waves
+- Provide EXACT pixel coordinates for professional annotation
+- Use proper medical terminology and measurements
+- Include confidence scores for quality control
+- Maintain consistent coordinate system throughout analysis
+
+**ANNOTATION STANDARDS:**
+This analysis will be used to generate medical-grade annotated images suitable for:
+- Medical education and training
+- Clinical reference documentation  
+- Professional consultation and review
+- Precision must match expert cardiologist standards`;
   }
 
   /**
