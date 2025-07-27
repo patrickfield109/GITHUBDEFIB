@@ -1,0 +1,587 @@
+🚨 CRITICAL EKG ANALYSIS ENHANCEMENT
+REPLIT AGENT PROMPT:
+Enhance OperatorOS EKG analysis to systematically track every P wave and QRS complex, accurately detect complete heart block, and distinguish T waves from QRS complexes. The system must never miss AV dissociation or calculate incorrect heart rates.
+
+🔬 COMPREHENSIVE ANALYSIS PROTOCOL
+Key Requirements:
+
+Count every P wave and QRS complex individually
+Calculate separate atrial and ventricular rates
+Assess P-QRS relationship for every beat
+Never confuse T waves (rounded) with QRS (sharp)
+Detect AV dissociation immediately
+
+Enhanced OpenAI Prompt:
+typescript// Replace current EKG prompt in server/services/openai-service.ts
+private getCriticalEKGAnalysisPrompt(): string {
+  return `You are an expert cardiologist performing SYSTEMATIC EKG analysis.
+
+🚨 CRITICAL MISSION: Track every cardiac cycle to detect life-threatening conduction blocks.
+
+**STEP-BY-STEP PROTOCOL:**
+
+1. **RHYTHM STRIP ANALYSIS (Lead II bottom strip):**
+   - Count P waves in 6-second strip × 10 = atrial rate
+   - Count QRS complexes in 6-second strip × 10 = ventricular rate
+   - NEVER count T waves as QRS complexes
+
+2. **COMPONENT IDENTIFICATION:**
+   - P waves: Small, rounded, upright in II
+   - QRS: Sharp, narrow deflections (<120ms normal)
+   - T waves: Rounded, gradual, AFTER QRS (not counted for rate)
+
+3. **P-QRS RELATIONSHIP CHECK:**
+   🚨 For EVERY beat, ask:
+   - Is this P wave followed by a QRS?
+   - Is the PR interval consistent?
+   - Are P waves "marching through" independently?
+
+4. **HEART BLOCK DETECTION:**
+   - Compare atrial rate vs ventricular rate
+   - If atrial > ventricular + no consistent P-QRS = COMPLETE HEART BLOCK
+   - AV dissociation = MEDICAL EMERGENCY
+
+**CRITICAL DIAGNOSTIC CRITERIA:**
+
+🚨 **Complete Heart Block:**
+- P waves regular at ~60-100 bpm
+- QRS complexes regular at ~20-60 bpm  
+- NO relationship between P and QRS
+- P waves "march through" independently
+
+**Rate Calculation Rules:**
+- Count complexes manually in rhythm strip
+- Atrial rate: 60000 ÷ (P-P interval in ms)
+- Ventricular rate: 60000 ÷ (R-R interval in ms)
+- Cross-verify in multiple leads
+
+**OUTPUT REQUIREMENTS:**
+{
+  "systematic_analysis": {
+    "p_wave_count_6sec": number,
+    "qrs_count_6sec": number,
+    "atrial_rate_bpm": number,
+    "ventricular_rate_bpm": number,
+    "rate_difference": number,
+    "av_relationship": "1:1"|"2:1"|"dissociated"
+  },
+  "conduction_assessment": {
+    "av_block_type": "none"|"1st_degree"|"2nd_degree"|"complete",
+    "av_dissociation_present": boolean,
+    "emergency_flag": boolean
+  },
+  "component_validation": {
+    "qrs_vs_t_wave_confusion": boolean,
+    "morphology_confidence": 0-100
+  }
+}
+
+🚨 NEVER MISS: Complete heart block, AV dissociation, T wave misidentification`;
+}
+🔧 ENHANCED IMPLEMENTATION
+1. Advanced Component Tracking:
+typescript// New: server/services/component-tracker.ts
+export class CardiacComponentTracker {
+  
+  async trackAllComponents(analysis: any): Promise<ComponentAnalysis> {
+    return {
+      pWaveTracking: await this.trackPWaves(analysis),
+      qrsTracking: await this.trackQRSComplexes(analysis),
+      tWaveValidation: await this.validateTWaves(analysis),
+      avRelationship: await this.assessAVRelationship(analysis)
+    };
+  }
+
+  private async trackPWaves(analysis: any): Promise<PWaveAnalysis> {
+    // Systematic P wave identification
+    const pWaves = this.identifyPWavesByCriteria(analysis);
+    const pRate = this.calculateAtrialRate(pWaves);
+    
+    return {
+      count: pWaves.length,
+      rate: pRate,
+      regularity: this.assessPWaveRegularity(pWaves),
+      morphology: this.describePWaveMorphology(pWaves)
+    };
+  }
+
+  private async trackQRSComplexes(analysis: any): Promise<QRSAnalysis> {
+    // Distinguish QRS from T waves
+    const qrsComplexes = this.identifyQRSByCriteria(analysis);
+    const vRate = this.calculateVentricularRate(qrsComplexes);
+    
+    return {
+      count: qrsComplexes.length,
+      rate: vRate,
+      width: this.measureQRSWidth(qrsComplexes),
+      morphology: this.describeQRSMorphology(qrsComplexes)
+    };
+  }
+
+  private async assessAVRelationship(analysis: any): Promise<AVConductionAnalysis> {
+    const pWaves = analysis.pWaveTracking;
+    const qrsComplexes = analysis.qrsTracking;
+    
+    // Critical: Check for AV dissociation
+    const dissociation = this.detectAVDissociation(pWaves, qrsComplexes);
+    
+    if (dissociation.present) {
+      return {
+        type: "COMPLETE_HEART_BLOCK",
+        urgency: "EMERGENT",
+        findings: [
+          `Atrial rate: ${pWaves.rate} bpm`,
+          `Ventricular rate: ${qrsComplexes.rate} bpm`,
+          "AV dissociation confirmed",
+          "🚨 COMPLETE HEART BLOCK"
+        ]
+      };
+    }
+
+    return this.assessPartialBlocks(pWaves, qrsComplexes);
+  }
+}
+2. Heart Block Detection Engine:
+typescript// Enhanced: server/services/heart-block-detector.ts
+export class HeartBlockDetector {
+  
+  detectCompleteHeartBlock(pWaves: any[], qrsComplexes: any[]): BlockDetection {
+    // Rule 1: Rate comparison
+    const atrialRate = this.calculateRate(pWaves);
+    const ventricularRate = this.calculateRate(qrsComplexes);
+    const rateDifference = Math.abs(atrialRate - ventricularRate);
+    
+    // Rule 2: AV dissociation check
+    const dissociation = this.checkAVDissociation(pWaves, qrsComplexes);
+    
+    // Rule 3: Independent marching
+    const independentRhythms = this.assessIndependentRhythms(pWaves, qrsComplexes);
+    
+    if (rateDifference > 20 && dissociation && independentRhythms) {
+      return {
+        type: "COMPLETE_HEART_BLOCK",
+        confidence: 0.95,
+        urgency: "EMERGENT",
+        evidence: [
+          `Atrial rate: ${atrialRate} bpm (P waves)`,
+          `Ventricular rate: ${ventricularRate} bpm (QRS)`,
+          "No consistent P-QRS relationship",
+          "P waves march independently of QRS"
+        ],
+        action: "IMMEDIATE CARDIOLOGY CONSULTATION"
+      };
+    }
+
+    return this.checkPartialBlocks(pWaves, qrsComplexes);
+  }
+
+  private checkAVDissociation(pWaves: any[], qrsComplexes: any[]): boolean {
+    // Check if P waves and QRS have consistent relationship
+    let consistentRelationships = 0;
+    
+    for (let i = 0; i < Math.min(pWaves.length, qrsComplexes.length); i++) {
+      const pTime = pWaves[i].time;
+      const qrsTime = qrsComplexes[i].time;
+      const prInterval = qrsTime - pTime;
+      
+      // Check if PR interval is consistent and physiological
+      if (prInterval > 120 && prInterval < 300) {
+        consistentRelationships++;
+      }
+    }
+    
+    // If less than 70% have consistent relationships = dissociation
+    return consistentRelationships / Math.min(pWaves.length, qrsComplexes.length) < 0.7;
+  }
+}
+3. T Wave vs QRS Validation:
+typescript// New: server/services/morphology-validator.ts
+export class MorphologyValidator {
+  
+  validateQRSvsTWave(components: any[]): ValidationResult {
+    const issues = [];
+    const corrections = [];
+    
+    for (const component of components) {
+      if (component.type === "QRS") {
+        // QRS validation criteria
+        if (!this.hasSharpOnset(component)) {
+          issues.push(`Component at ${component.time}ms may be T wave, not QRS`);
+          corrections.push({
+            component: component,
+            suggestion: "Reclassify as T wave",
+            reason: "Gradual onset, not sharp QRS pattern"
+          });
+        }
+        
+        if (this.isRoundedMorphology(component)) {
+          issues.push(`Component at ${component.time}ms has rounded morphology typical of T wave`);
+        }
+      }
+    }
+    
+    return {
+      isValid: issues.length === 0,
+      issues: issues,
+      corrections: corrections,
+      confidence: this.calculateMorphologyConfidence(components)
+    };
+  }
+
+  private hasSharpOnset(component: any): boolean {
+    // QRS should have rapid deflection from baseline
+    return component.onset_slope > 0.5 && component.duration < 120;
+  }
+
+  private isRoundedMorphology(component: any): boolean {
+    // T waves are typically rounded and gradual
+    return component.peak_sharpness < 0.3 && component.duration > 150;
+  }
+}
+4. Enhanced Command Processor:
+typescript// Update: server/services/command-processor.ts
+private async handleCriticalEKGAnalysis(imageData: string): Promise<string> {
+  const taskId = await agentOrchestration.routeTask("critical_ekg_analysis", {
+    type: "comprehensive_component_tracking",
+    image: imageData,
+    analysis_mode: "systematic_tracking",
+    validation_required: true,
+    heart_block_detection: true
+  });
+  
+  return `🚨 **CRITICAL EKG ANALYSIS INITIATED**
+
+📋 Task ID: ${taskId}
+🔬 Systematic component tracking in progress...
+
+**COMPREHENSIVE PROTOCOL ACTIVE:**
+✅ P wave identification and counting
+✅ QRS complex tracking (excluding T waves)
+✅ Separate atrial/ventricular rate calculation
+✅ AV conduction assessment
+✅ Complete heart block detection
+✅ Morphology validation (QRS vs T wave)
+
+🚨 **SAFETY FEATURES:**
+- Multi-layer heart block detection
+- Component misidentification prevention
+- Rate calculation verification
+- Emergency condition flagging
+
+⏱️ Analysis time: 60-90 seconds (enhanced accuracy)
+🎯 Focus: Never miss complete heart block or rate errors`;
+}
+🎯 IMMEDIATE IMPLEMENTATION
+Quick Fix Prompt for Replit Agent:
+URGENT: Enhance OperatorOS EKG analysis to prevent missing complete heart block:
+
+1. **Systematic Counting Protocol:**
+   - Count P waves separately from QRS complexes
+   - Calculate atrial rate (P-RetryPFContinueEditURGENT: Enhance OperatorOS EKG analysis to prevent missing complete heart block:
+
+1. **Systematic Counting Protocol:**
+  - Count P waves separately from QRS complexes  
+  - Calculate atrial rate (P-P intervals) vs ventricular rate (R-R intervals)
+  - Track every beat in the rhythm strip manually
+
+2. **Complete Heart Block Detection:**
+  - Compare atrial vs ventricular rates
+  - Check for AV dissociation (P waves independent of QRS)
+  - Flag when atrial rate ≠ ventricular rate
+  - Identify "marching" P waves through QRS complexes
+
+3. **QRS vs T Wave Distinction:**
+  - QRS: Sharp, narrow, rapid deflection
+  - T waves: Rounded, gradual, broader
+  - Never count T waves in rate calculation
+  - Validate component sequence (P-QRS-T)
+
+4. **Enhanced OpenAI Prompt:**
+  Replace current EKG prompt with systematic analysis requiring:
+  - Manual counting of each component type
+  - Separate rate calculations
+  - AV relationship assessment for every beat
+  - Emergency flagging for dissociation
+
+5. **Validation System:**
+  - Cross-check rate calculations
+  - Validate heart block detection
+  - Confirm morphology identification
+  - Flag low confidence analyses
+
+This prevents dangerous misses of complete heart block and ensures accurate heart rate calculations.
+🔧 COMPLETE IMPLEMENTATION FILES
+Enhanced OpenAI Service (Critical Update):
+typescript// server/services/openai-service.ts - COMPLETE REPLACEMENT
+export class CriticalEKGService extends OpenAIService {
+  
+  async processCriticalEKG(input: EKGAnalysisInput): Promise<CriticalEKGResult> {
+    // Step 1: Image enhancement for component visibility
+    const enhancedImage = await this.enhanceImageForAnalysis(input.image);
+    
+    // Step 2: Systematic component tracking
+    const componentAnalysis = await this.performSystematicAnalysis(enhancedImage);
+    
+    // Step 3: Heart block validation
+    const heartBlockCheck = await this.validateHeartBlockDetection(componentAnalysis);
+    
+    // Step 4: Rate verification
+    const rateValidation = await this.validateRateCalculations(componentAnalysis);
+    
+    // Step 5: Final compilation with safety checks
+    return this.compileCriticalAnalysis(componentAnalysis, heartBlockCheck, rateValidation);
+  }
+
+  private async performSystematicAnalysis(imageData: string): Promise<any> {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are performing CRITICAL EKG analysis. This is a life-or-death assessment.
+
+🚨 SYSTEMATIC PROTOCOL - NEVER DEVIATE:
+
+**STEP 1: RHYTHM STRIP FOCUS**
+- Locate the longest rhythm strip (usually Lead II at bottom)
+- This strip is your PRIMARY source for counting
+
+**STEP 2: P WAVE COUNTING**
+- Count EVERY P wave in 6-second rhythm strip
+- P waves: Small, rounded, upright in Lead II
+- Multiply by 10 for atrial rate
+- Mark each P wave location
+
+**STEP 3: QRS COUNTING** 
+- Count EVERY QRS complex in 6-second rhythm strip
+- QRS: Sharp, narrow (<120ms), tall deflections
+- Multiply by 10 for ventricular rate
+- DO NOT count T waves as QRS
+
+**STEP 4: T WAVE IDENTIFICATION**
+- T waves: Rounded, gradual, AFTER each QRS
+- T waves are NOT counted for heart rate
+- Ensure no T waves included in QRS count
+
+**STEP 5: AV RELATIONSHIP**
+- For EVERY P wave, check: "Is it followed by QRS?"
+- Measure time from P to next QRS (PR interval)
+- Look for pattern: 1:1, 2:1, or no pattern
+
+**STEP 6: HEART BLOCK DETECTION**
+🚨 CRITICAL: If atrial rate ≠ ventricular rate AND no consistent P-QRS relationship = COMPLETE HEART BLOCK
+
+**REQUIRED OUTPUT:**
+{
+  "rhythm_strip_analysis": {
+    "strip_duration_seconds": 6,
+    "p_waves_counted": number,
+    "qrs_complexes_counted": number,
+    "t_waves_identified": number,
+    "atrial_rate_calculated": "p_waves_counted × 10",
+    "ventricular_rate_calculated": "qrs_counted × 10"
+  },
+  "component_tracking": {
+    "p_wave_locations": [{"time_ms": number, "amplitude": number}],
+    "qrs_locations": [{"time_ms": number, "width_ms": number}],
+    "t_wave_locations": [{"time_ms": number, "polarity": string}]
+  },
+  "av_analysis": {
+    "p_qrs_relationship": "Every P followed by QRS?",
+    "pr_intervals": [number],
+    "av_dissociation": boolean,
+    "conduction_type": "normal|1st_degree|2nd_degree|complete_block"
+  },
+  "emergency_assessment": {
+    "complete_heart_block": boolean,
+    "rate_discrepancy": boolean,
+    "immediate_action_required": boolean
+  }
+}
+
+🚨 RED FLAGS - IMMEDIATE ALERT:
+- Atrial rate 60-100, Ventricular rate 20-60 = COMPLETE HEART BLOCK
+- P waves "marching through" without QRS relationship
+- Any confusion between T waves and QRS complexes
+
+Be methodical. Count manually. Never assume.`
+          },
+          {
+            role: "user", 
+            content: [
+              {
+                type: "text",
+                text: `CRITICAL EKG ANALYSIS REQUIRED
+
+This EKG requires systematic component tracking to detect:
+1. Complete heart block (AV dissociation)
+2. Accurate heart rate calculation
+3. Proper QRS vs T wave identification
+
+Perform the systematic protocol. Count every component manually in the rhythm strip. 
+
+🚨 CRITICAL: Do not miss complete heart block or miscount due to T wave confusion.`
+              },
+              {
+                type: "image_url",
+                image_url: { url: imageData }
+              }
+            ]
+          }
+        ],
+        max_tokens: 4000,
+        temperature: 0.02 // Extremely low for medical precision
+      })
+    });
+
+    const data = await response.json();
+    return this.parseSystematicEKGResponse(data.choices[0].message.content);
+  }
+
+  private async validateHeartBlockDetection(analysis: any): Promise<ValidationResult> {
+    // Second opinion specifically for heart block
+    const validationPrompt = `HEART BLOCK VALIDATION REQUIRED
+
+PRIMARY ANALYSIS: ${JSON.stringify(analysis)}
+
+🚨 VALIDATION PROTOCOL:
+1. Verify P wave and QRS counts are accurate
+2. Confirm rate calculations (count × 10 for 6-second strip)
+3. Assess AV relationship: Does every P have a QRS?
+4. Check for AV dissociation: P waves independent of QRS?
+
+SPECIFIC QUESTIONS:
+- Are atrial and ventricular rates significantly different?
+- Is there a consistent P-QRS relationship?
+- Are P waves "marching through" at their own rate?
+- Could this be complete heart block?
+
+Return: CONFIRMED/REJECTED with confidence and reasoning.`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are a cardiac electrophysiologist validating heart block diagnoses. Be extremely conservative and precise."
+          },
+          {
+            role: "user",
+            content: validationPrompt
+          }
+        ],
+        max_tokens: 1500,
+        temperature: 0.1
+      })
+    });
+
+    const validationData = await response.json();
+    return this.parseHeartBlockValidation(validationData.choices[0].message.content);
+  }
+}
+Heart Block Emergency Detector:
+typescript// New: server/services/emergency-detector.ts
+export class EKGEmergencyDetector {
+  
+  detectCriticalFindings(analysis: any): EmergencyAssessment {
+    const emergencies = [];
+    
+    // 1. Complete Heart Block Detection
+    const heartBlockResult = this.assessCompleteHeartBlock(analysis);
+    if (heartBlockResult.detected) {
+      emergencies.push({
+        condition: "COMPLETE_HEART_BLOCK",
+        urgency: "EMERGENT",
+        action: "IMMEDIATE_PACING_EVALUATION",
+        evidence: heartBlockResult.evidence
+      });
+    }
+
+    // 2. Rate validation
+    const rateIssues = this.validateHeartRates(analysis);
+    if (rateIssues.length > 0) {
+      emergencies.push({
+        condition: "RATE_CALCULATION_ERROR", 
+        urgency: "HIGH_PRIORITY",
+        action: "RECOUNT_COMPONENTS",
+        evidence: rateIssues
+      });
+    }
+
+    // 3. Component misidentification
+    const morphologyIssues = this.validateComponentMorphology(analysis);
+    if (morphologyIssues.tWaveConfusion) {
+      emergencies.push({
+        condition: "T_WAVE_QRS_CONFUSION",
+        urgency: "MEDIUM_PRIORITY", 
+        action: "MORPHOLOGY_REVIEW",
+        evidence: ["T waves may be miscounted as QRS complexes"]
+      });
+    }
+
+    return {
+      emergencyLevel: this.calculateEmergencyLevel(emergencies),
+      findings: emergencies,
+      recommendations: this.generateEmergencyRecommendations(emergencies)
+    };
+  }
+
+  private assessCompleteHeartBlock(analysis: any): HeartBlockAssessment {
+    const atrialRate = analysis.rhythm_strip_analysis?.atrial_rate_calculated || 0;
+    const ventricularRate = analysis.rhythm_strip_analysis?.ventricular_rate_calculated || 0;
+    const avDissociation = analysis.av_analysis?.av_dissociation || false;
+    
+    const rateDifference = Math.abs(atrialRate - ventricularRate);
+    
+    // Complete heart block criteria
+    const criteria = {
+      significantRateDifference: rateDifference > 20,
+      atrialRateNormal: atrialRate >= 60 && atrialRate <= 100,
+      ventricularRateSlow: ventricularRate >= 20 && ventricularRate <= 60,
+      avDissociationPresent: avDissociation
+    };
+
+    const criteriaMetCount = Object.values(criteria).filter(Boolean).length;
+    
+    return {
+      detected: criteriaMetCount >= 3,
+      confidence: criteriaMetCount / 4,
+      evidence: [
+        `Atrial rate: ${atrialRate} bpm`,
+        `Ventricular rate: ${ventricularRate} bpm`,
+        `Rate difference: ${rateDifference} bpm`,
+        `AV dissociation: ${avDissociation ? 'Present' : 'Absent'}`
+      ]
+    };
+  }
+}
+🚨 FINAL IMPLEMENTATION COMMAND
+For Replit Agent:
+CRITICAL: Implement systematic EKG analysis in OperatorOS to prevent missing complete heart block:
+
+1. **Replace OpenAI EKG prompt** with systematic counting protocol
+2. **Add heart block validation** with second AI opinion  
+3. **Implement QRS vs T wave validation** to prevent miscount
+4. **Add emergency detection system** for critical findings
+5. **Create rate verification** with cross-checking
+6. **Update command processor** to use critical analysis mode
+
+Key files to update:
+- server/services/openai-service.ts (enhanced prompt)
+- server/services/heart-block-detector.ts (new validation)
+- server/services/emergency-detector.ts (safety system)
+- server/services/command-processor.ts (critical mode)
+
+This ensures complete heart block is never missed and heart rates are calculated correctly by distinguishing QRS from T waves.
